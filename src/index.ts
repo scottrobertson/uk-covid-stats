@@ -29,7 +29,7 @@ class UkCovidStats extends Command {
     if (flags['all-time']) {
       limitedRolloutData = rolloutData
     } else {
-      limitedRolloutData = rolloutData.slice(Math.max(rolloutData.length - 30, 1))
+      limitedRolloutData = rolloutData.slice(Math.max(rolloutData.length - 7, 1))
     }
 
     const rolloutTable = new Table({
