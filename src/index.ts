@@ -4,6 +4,12 @@ import {orderBy} from 'lodash'
 const asciichart = require('asciichart')
 const Table = require('cli-table3')
 
+interface DataNode {
+  date: Date;
+  cumVaccinationFirstDoseUptakeByPublishDatePercentage: number;
+  cumVaccinationSecondDoseUptakeByPublishDatePercentage: number;
+}
+
 class UkCovidStats extends Command {
   static flags = {
     version: flags.version({char: 'v'}),
@@ -17,7 +23,7 @@ class UkCovidStats extends Command {
 
     const rolloutUrl = 'https://coronavirus.data.gov.uk/api/v1/data?filters=areaName=United%2520Kingdom;areaType=overview&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22cumVaccinationFirstDoseUptakeByPublishDatePercentage%22:%22cumVaccinationFirstDoseUptakeByPublishDatePercentage%22,%22cumVaccinationSecondDoseUptakeByPublishDatePercentage%22:%22cumVaccinationSecondDoseUptakeByPublishDatePercentage%22%7D&format=json'
     const rolloutResponse = await axios.get(rolloutUrl)
-    const rolloutData = orderBy(rolloutResponse.data.data, ['date', 'asc'])
+    const rolloutData: DataNode[] = orderBy(rolloutResponse.data.data, ['date', 'asc'])
     let limitedRolloutData
 
     if (flags['all-time']) {
@@ -31,7 +37,7 @@ class UkCovidStats extends Command {
       colWidths: [15, 15, 16],
     })
 
-    limitedRolloutData.forEach((row: any) => {
+    limitedRolloutData.forEach(row => {
       rolloutTable.push([row.date, row.cumVaccinationFirstDoseUptakeByPublishDatePercentage, row.cumVaccinationSecondDoseUptakeByPublishDatePercentage])
     })
 
@@ -42,7 +48,7 @@ class UkCovidStats extends Command {
       const firstDoseChart = new Array(limitedRolloutData.length)
       const secondDoseChart = new Array(limitedRolloutData.length)
 
-      limitedRolloutData.forEach((row: any, index: number) => {
+      limitedRolloutData.forEach((row, index: number) => {
         firstDoseChart[index] = row.cumVaccinationFirstDoseUptakeByPublishDatePercentage
         secondDoseChart[index] = row.cumVaccinationSecondDoseUptakeByPublishDatePercentage
       })
