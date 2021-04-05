@@ -9,6 +9,8 @@ interface RolloutDataNode {
   date: Date;
   cumVaccinationFirstDoseUptakeByPublishDatePercentage: number;
   cumVaccinationSecondDoseUptakeByPublishDatePercentage: number;
+  cumPeopleVaccinatedFirstDoseByPublishDate: number;
+  cumPeopleVaccinatedSecondDoseByPublishDate: number;
   newPeopleVaccinatedFirstDoseByPublishDate: number;
   newPeopleVaccinatedSecondDoseByPublishDate: number;
 }
@@ -32,6 +34,8 @@ class UkCovidStats extends Command {
       date: 'date',
       newPeopleVaccinatedFirstDoseByPublishDate: 'newPeopleVaccinatedFirstDoseByPublishDate',
       newPeopleVaccinatedSecondDoseByPublishDate: 'newPeopleVaccinatedSecondDoseByPublishDate',
+      cumPeopleVaccinatedFirstDoseByPublishDate: 'cumPeopleVaccinatedFirstDoseByPublishDate',
+      cumPeopleVaccinatedSecondDoseByPublishDate: 'cumPeopleVaccinatedSecondDoseByPublishDate',
       cumVaccinationFirstDoseUptakeByPublishDatePercentage: 'cumVaccinationFirstDoseUptakeByPublishDatePercentage',
       cumVaccinationSecondDoseUptakeByPublishDatePercentage: 'cumVaccinationSecondDoseUptakeByPublishDatePercentage',
     }
@@ -54,18 +58,21 @@ class UkCovidStats extends Command {
     }
 
     const rolloutTable = new Table({
-      head: ['Date', 'First Dose %', 'Second Dose %', 'First Doses #', 'Second Doses #', 'Total Doses #'],
+      head: ['Date', 'First Dose %', 'Second Dose %', 'Daily First Doses', 'Daily Second Doses', 'Daily Total Doses', 'All Time First Doses', 'All Time Second Doses', 'All Time Doses'],
       colWidths: [15, 15, 16],
     })
 
     limitedRolloutData.forEach(row => {
       rolloutTable.push([
         row.date,
-        row.cumVaccinationFirstDoseUptakeByPublishDatePercentage.toFixed(1),
-        row.cumVaccinationSecondDoseUptakeByPublishDatePercentage.toFixed(1),
-        row.newPeopleVaccinatedFirstDoseByPublishDate || 0,
-        row.newPeopleVaccinatedSecondDoseByPublishDate || 0,
-        row.newPeopleVaccinatedFirstDoseByPublishDate + row.newPeopleVaccinatedSecondDoseByPublishDate,
+        `${row.cumVaccinationFirstDoseUptakeByPublishDatePercentage.toFixed(1)}%`,
+        `${row.cumVaccinationSecondDoseUptakeByPublishDatePercentage.toFixed(1)}%`,
+        this.formatNumber(row.newPeopleVaccinatedFirstDoseByPublishDate || 0),
+        this.formatNumber(row.newPeopleVaccinatedSecondDoseByPublishDate || 0),
+        this.formatNumber(row.newPeopleVaccinatedFirstDoseByPublishDate + row.newPeopleVaccinatedSecondDoseByPublishDate),
+        this.formatNumber(row.cumPeopleVaccinatedFirstDoseByPublishDate || 0),
+        this.formatNumber(row.cumPeopleVaccinatedSecondDoseByPublishDate || 0),
+        this.formatNumber(row.cumPeopleVaccinatedFirstDoseByPublishDate + row.cumPeopleVaccinatedSecondDoseByPublishDate),
       ])
     })
 
@@ -96,6 +103,10 @@ class UkCovidStats extends Command {
 
       this.log(asciichart.plot([firstDoseChart, secondDoseChart], config))
     }
+  }
+
+  private formatNumber(number: number): string {
+    return new Intl.NumberFormat('en-GB').format(number)
   }
 }
 
