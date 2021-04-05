@@ -1,7 +1,7 @@
 {
   "name": "uk-covid-stats",
   "description": "Display the latest UK Covid stats",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "author": "Scott Robertson @scottrobertson",
   "bin": {
     "uk-covid-stats": "./bin/run"
