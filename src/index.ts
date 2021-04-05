@@ -48,18 +48,10 @@ class UkCovidStats extends Command {
 
     const response = await axios.get(`${baseUrl}?${new URLSearchParams(params).toString()}`)
     const rolloutData: RolloutDataNode[] = orderBy(response.data.data, ['date', 'asc'])
-
-    let limitedRolloutData
-
-    if (flags['all-time']) {
-      limitedRolloutData = rolloutData
-    } else {
-      limitedRolloutData = rolloutData.slice(Math.max(rolloutData.length - 7, 1))
-    }
+    const limitedRolloutData = flags['all-time'] ? rolloutData : rolloutData.slice(Math.max(rolloutData.length - 7, 1))
 
     const rolloutTable = new Table({
       head: ['Date', 'First Dose %', 'Second Dose %', 'Daily First Doses', 'Daily Second Doses', 'Daily Total Doses', 'All Time First Doses', 'All Time Second Doses', 'All Time Doses'],
-      colWidths: [15, 15, 16],
     })
 
     limitedRolloutData.forEach(row => {
@@ -103,6 +95,8 @@ class UkCovidStats extends Command {
 
       this.log(asciichart.plot([firstDoseChart, secondDoseChart], config))
     }
+
+    this.log('')
   }
 
   private formatNumber(number: number): string {
