@@ -3,11 +3,14 @@ import axios from 'axios'
 import {orderBy} from 'lodash'
 const asciichart = require('asciichart')
 const Table = require('cli-table3')
+const {URLSearchParams} = require('url')
 
-interface DataNode {
+interface RolloutDataNode {
   date: Date;
   cumVaccinationFirstDoseUptakeByPublishDatePercentage: number;
   cumVaccinationSecondDoseUptakeByPublishDatePercentage: number;
+  newPeopleVaccinatedFirstDoseByPublishDate: number;
+  newPeopleVaccinatedSecondDoseByPublishDate: number;
 }
 
 class UkCovidStats extends Command {
@@ -21,9 +24,27 @@ class UkCovidStats extends Command {
   async run() {
     const {flags} = this.parse(UkCovidStats)
 
-    const rolloutUrl = 'https://coronavirus.data.gov.uk/api/v1/data?filters=areaName=United%2520Kingdom;areaType=overview&structure=%7B%22areaType%22:%22areaType%22,%22areaName%22:%22areaName%22,%22areaCode%22:%22areaCode%22,%22date%22:%22date%22,%22cumVaccinationFirstDoseUptakeByPublishDatePercentage%22:%22cumVaccinationFirstDoseUptakeByPublishDatePercentage%22,%22cumVaccinationSecondDoseUptakeByPublishDatePercentage%22:%22cumVaccinationSecondDoseUptakeByPublishDatePercentage%22%7D&format=json'
-    const rolloutResponse = await axios.get(rolloutUrl)
-    const rolloutData: DataNode[] = orderBy(rolloutResponse.data.data, ['date', 'asc'])
+    const baseUrl = 'https://coronavirus.data.gov.uk/api/v1/data'
+    const structure = {
+      areaType: 'areaType',
+      areaName: 'areaName',
+      areaCode: 'areaCode',
+      date: 'date',
+      newPeopleVaccinatedFirstDoseByPublishDate: 'newPeopleVaccinatedFirstDoseByPublishDate',
+      newPeopleVaccinatedSecondDoseByPublishDate: 'newPeopleVaccinatedSecondDoseByPublishDate',
+      cumVaccinationFirstDoseUptakeByPublishDatePercentage: 'cumVaccinationFirstDoseUptakeByPublishDatePercentage',
+      cumVaccinationSecondDoseUptakeByPublishDatePercentage: 'cumVaccinationSecondDoseUptakeByPublishDatePercentage',
+    }
+
+    const params = {
+      filters: 'areaName=United%2520Kingdom;areaType=overview&',
+      structure: JSON.stringify(structure),
+      format: 'json',
+    }
+
+    const response = await axios.get(`${baseUrl}?${new URLSearchParams(params).toString()}`)
+    const rolloutData: RolloutDataNode[] = orderBy(response.data.data, ['date', 'asc'])
+
     let limitedRolloutData
 
     if (flags['all-time']) {
@@ -33,12 +54,19 @@ class UkCovidStats extends Command {
     }
 
     const rolloutTable = new Table({
-      head: ['Date', 'First Dose %', 'Second Dose %'],
+      head: ['Date', 'First Dose %', 'Second Dose %', 'First Doses #', 'Second Doses #', 'Total Doses #'],
       colWidths: [15, 15, 16],
     })
 
     limitedRolloutData.forEach(row => {
-      rolloutTable.push([row.date, row.cumVaccinationFirstDoseUptakeByPublishDatePercentage, row.cumVaccinationSecondDoseUptakeByPublishDatePercentage])
+      rolloutTable.push([
+        row.date,
+        row.cumVaccinationFirstDoseUptakeByPublishDatePercentage.toFixed(1),
+        row.cumVaccinationSecondDoseUptakeByPublishDatePercentage.toFixed(1),
+        row.newPeopleVaccinatedFirstDoseByPublishDate || 0,
+        row.newPeopleVaccinatedSecondDoseByPublishDate || 0,
+        row.newPeopleVaccinatedFirstDoseByPublishDate + row.newPeopleVaccinatedSecondDoseByPublishDate,
+      ])
     })
 
     this.log('')
