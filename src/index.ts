@@ -1,6 +1,6 @@
 import {Command, flags} from '@oclif/command'
 import axios from 'axios'
-import {orderBy} from 'lodash'
+import {chain} from 'lodash'
 const asciichart = require('asciichart')
 const Table = require('cli-table3')
 const {URLSearchParams} = require('url')
@@ -13,6 +13,8 @@ interface RolloutDataNode {
   cumPeopleVaccinatedSecondDoseByPublishDate: number;
   newPeopleVaccinatedFirstDoseByPublishDate: number;
   newPeopleVaccinatedSecondDoseByPublishDate: number;
+  newCasesByPublishDate: number;
+  newDeaths28DaysByPublishDate: number;
 }
 
 class UkCovidStats extends Command {
@@ -38,6 +40,8 @@ class UkCovidStats extends Command {
       cumPeopleVaccinatedSecondDoseByPublishDate: 'cumPeopleVaccinatedSecondDoseByPublishDate',
       cumVaccinationFirstDoseUptakeByPublishDatePercentage: 'cumVaccinationFirstDoseUptakeByPublishDatePercentage',
       cumVaccinationSecondDoseUptakeByPublishDatePercentage: 'cumVaccinationSecondDoseUptakeByPublishDatePercentage',
+      newCasesByPublishDate: 'newCasesByPublishDate',
+      newDeaths28DaysByPublishDate: 'newDeaths28DaysByPublishDate',
     }
 
     const params = {
@@ -47,24 +51,30 @@ class UkCovidStats extends Command {
     }
 
     const response = await axios.get(`${baseUrl}?${new URLSearchParams(params).toString()}`)
-    const rolloutData: RolloutDataNode[] = orderBy(response.data.data, ['date', 'asc'])
+    const rolloutData: RolloutDataNode[] = chain(response.data.data)
+    .orderBy(['date', 'asc'])
+    .reject(['cumPeopleVaccinatedFirstDoseByPublishDate', null])
+    .value()
+
     const limitedRolloutData = flags['all-time'] ? rolloutData : rolloutData.slice(Math.max(rolloutData.length - 7, 1))
 
     const rolloutTable = new Table({
-      head: ['Date', 'First Dose %', 'Second Dose %', 'Daily First Doses', 'Daily Second Doses', 'Daily Total Doses', 'All Time First Doses', 'All Time Second Doses', 'All Time Doses'],
+      head: ['Date', 'First Dose %', 'Second Dose %', 'Daily First Doses', 'Daily Second Doses', 'Daily Total Doses', 'All Time First Doses', 'All Time Second Doses', 'All Time Doses', 'Daily Cases', 'Daily Deaths'],
     })
 
     limitedRolloutData.forEach(row => {
       rolloutTable.push([
         row.date,
-        `${row.cumVaccinationFirstDoseUptakeByPublishDatePercentage.toFixed(1)}%`,
-        `${row.cumVaccinationSecondDoseUptakeByPublishDatePercentage.toFixed(1)}%`,
+        `${(row.cumVaccinationFirstDoseUptakeByPublishDatePercentage || 0).toFixed(1)}%`,
+        `${(row.cumVaccinationSecondDoseUptakeByPublishDatePercentage || 0).toFixed(1)}%`,
         this.formatNumber(row.newPeopleVaccinatedFirstDoseByPublishDate || 0),
         this.formatNumber(row.newPeopleVaccinatedSecondDoseByPublishDate || 0),
         this.formatNumber(row.newPeopleVaccinatedFirstDoseByPublishDate + row.newPeopleVaccinatedSecondDoseByPublishDate),
         this.formatNumber(row.cumPeopleVaccinatedFirstDoseByPublishDate || 0),
         this.formatNumber(row.cumPeopleVaccinatedSecondDoseByPublishDate || 0),
         this.formatNumber(row.cumPeopleVaccinatedFirstDoseByPublishDate + row.cumPeopleVaccinatedSecondDoseByPublishDate),
+        row.newCasesByPublishDate ? this.formatNumber(row.newCasesByPublishDate) : 'Unknown',
+        row.newDeaths28DaysByPublishDate ? this.formatNumber(row.newDeaths28DaysByPublishDate) : 'Unknown',
       ])
     })
 
@@ -96,6 +106,7 @@ class UkCovidStats extends Command {
       this.log(asciichart.plot([firstDoseChart, secondDoseChart], config))
     }
 
+    this.log('Data for the last 5 days may be incomplete.')
     this.log('')
   }
 
